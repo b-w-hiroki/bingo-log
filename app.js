@@ -1473,53 +1473,32 @@ Routes.tokushoho = async function renderTokushoho() {
 // S1 シェア — 公開URL生成 + コピー
 // ─────────────────────────────────────────────────────────────
 function showSharePanel(sheet) {
-  const loc = findLocation(sheet.locationId);
-  const base = location.href.split('#')[0];
-  const shareUrl = `${base}#public/${sheet.id}`;
-
-  sheet.isPublic = true;
-  Storage.saveSheet(sheet);
-
-  const hasNativeShare = typeof navigator.share === 'function';
-
+  const loc=findLocation(sheet.locationId);
   openOverlay(`
     <div class="modal-dim" data-dismiss></div>
-    <div class="bottom-sheet" role="dialog" aria-label="シートを共有">
-      <div class="handle"></div>
-      <div class="eyebrow">SHARE · シートを共有</div>
-      <div class="cell-name"><span>${escapeHtml(loc ? loc.name : 'シート')}</span></div>
-
-      <div class="share-note">リンクを知っている人がシートを閲覧・取り込みできます。</div>
-
-      <div class="share-url-row">
-        <div class="share-url-box">${escapeHtml(shareUrl)}</div>
-        <button class="pill" id="copy-url">コピー</button>
-      </div>
-
-      <div class="modal-buttons">
-        <button class="btn" data-dismiss>閉じる</button>
-        ${hasNativeShare ? `<button class="btn primary" id="native-share">共有する ↑</button>` : ''}
-      </div>
+    <div class="bottom-sheet" role="dialog" aria-label="旅の記録を画像に保存">
+      <div class="handle"></div><div class="eyebrow">SAVE · 旅の記録を画像に</div>
+      <div class="cell-name">${escapeHtml(loc ? loc.name : 'シート')}</div>
+      <p class="share-note">写真とお題を1枚にまとめます。記録はこの端末内に保存されており、URLだけでは他の端末に共有できません。</p>
+      <p class="share-note">人物や個人情報が写っていないか、共有前に確認してください。</p>
+      <p id="image-export-status" role="status"></p><div id="image-export-preview"></div>
+      <div class="modal-buttons"><button class="btn" data-dismiss>閉じる</button><button class="btn primary" id="make-sheet-image">画像を作成</button></div>
     </div>
   `);
-
-  $$('[data-dismiss]', $('#overlay')).forEach((b) => b.addEventListener('click', closeOverlay));
-
-  $('#copy-url').addEventListener('click', () => {
-    navigator.clipboard.writeText(shareUrl)
-      .then(() => toast('リンクをコピーしました'))
-      .catch(() => toast('コピーできませんでした'));
+  $$('[data-dismiss]',$('#overlay')).forEach(b=>b.addEventListener('click',closeOverlay));
+  const button=$('#make-sheet-image'),status=$('#image-export-status'),preview=$('#image-export-preview');
+  button.addEventListener('click',async()=>{
+    button.disabled=true;status.textContent='画像を作成しています…';
+    try {
+      const {canvas,missingPhotos}=await SheetImage.create(sheet,loc ? loc.name : '旅の記録',Storage.getPhotoURL);
+      if(!button.isConnected)return;
+      const image=document.createElement('img');image.src=canvas.toDataURL('image/png');image.alt='旅の記録の保存プレビュー';image.style.width='100%';
+      const link=document.createElement('a');link.href=image.src;link.download='bingo-log.png';link.textContent='画像を保存';link.className='btn primary';
+      preview.replaceChildren(image,link);
+      status.textContent=missingPhotos ? `${missingPhotos}枚の写真を読み込めませんでした。確認してから保存してください。` : '画像を保存できます。保存できない場合は画像を長押ししてください。';button.textContent='画像を作り直す';
+    } catch {if(button.isConnected)status.textContent='画像を作成できませんでした。もう一度お試しください。'}
+    finally {if(button.isConnected)button.disabled=false}
   });
-
-  if (hasNativeShare) {
-    $('#native-share').addEventListener('click', () => {
-      navigator.share({
-        title: `B·log — ${loc ? loc.name : 'シート'}`,
-        text: `${loc ? loc.name : ''}のビンゴシートを見てください！`,
-        url: shareUrl,
-      }).catch(() => {});
-    });
-  }
 }
 
 // ─────────────────────────────────────────────────────────────
