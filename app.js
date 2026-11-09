@@ -1470,7 +1470,7 @@ Routes.tokushoho = async function renderTokushoho() {
 };
 
 // ─────────────────────────────────────────────────────────────
-// S1 シェア — 公開URL生成 + コピー
+// S1 画像保存 — 端末内で PNG プレビューとダウンロード
 // ─────────────────────────────────────────────────────────────
 function showSharePanel(sheet) {
   const loc=findLocation(sheet.locationId);
